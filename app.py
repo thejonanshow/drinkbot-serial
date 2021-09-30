@@ -77,13 +77,18 @@ class DrinkbotSerial:
         # No name set yet, so no response of response was blank
         # Generate a random name and assign
         if self.name == None:
-            self.name = "".join(
+            new_name = "".join(
                 random.choices(string.ascii_letters + string.digits, k=16)
             )
-            self.send_cmd(f"Name,{self.name}")
+
             newrelic.agent.record_custom_event(
-                "Name/Set", {"name": self.name}, application=application
+                "Name/Set",
+                {"old_name": self.name, "new_name": new_name},
+                application=application,
             )
+
+            self.name = new_name
+            self.send_cmd(f"Name,{self.name}")
 
             # wait before we return that we're ready to accept commands
             time.sleep(2)
@@ -114,10 +119,16 @@ class DrinkbotSerial:
 
                 if "name" in data and "command" in data and data["name"] == self.name:
                     if data["command"][:5] == "Name,":
-                        self.name = data["command"].split(",")[1]
+                        new_name = data["command"].split(",")[1]
+
                         newrelic.agent.record_custom_event(
-                            "Name/Set", {"name": self.name}, application=application
+                            "Name/Set",
+                            {"old_name": self.name, "new_name": new_name},
+                            application=application,
                         )
+
+                        self.name = new_name
+
                     elif data["command"][:5] == "Find,":
                         newrelic.agent.record_custom_event(
                             "Blink/LED", {"name": self.name}, application=application
