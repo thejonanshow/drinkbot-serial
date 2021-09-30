@@ -20,7 +20,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: motorcontroller
-        image: thejonanshow/motorcontroller:v1
+        image: thejonanshow/motorcontroller:v2
         securityContext:
           privileged: true
         resources:
