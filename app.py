@@ -128,29 +128,45 @@ class DrinkbotSerial:
                 data = json.loads(message.get("data"))
 
                 if "name" in data and "command" in data and data["name"] == self.name:
-                    if data["command"][:5] == "Name,":
-                        new_name = data["command"].split(",")[1]
+                    if data["command"][:4] == "Read":
+                        if not self.DEBUG:
+                            response = self._read_lines()
+                            self.redis_conn.publish(
+                                "drinkbot",
+                                json.dumps({"name": self.name, "lines": response}),
+                            )
+                        else:
+                            print(json.dumps({"name": self.name, "lines": []}))
+                            self.redis_conn.publish(
+                                "drinkbot",
+                                json.dumps({"name": self.name, "lines": []}),
+                            )
+                    else:
+                        if data["command"][:5] == "Name,":
+                            new_name = data["command"].split(",")[1]
 
-                        newrelic.agent.record_custom_event(
-                            "Name/Set",
-                            {"old_name": self.name, "new_name": new_name},
-                            application=application,
-                        )
+                            newrelic.agent.record_custom_event(
+                                "Name/Set",
+                                {"old_name": self.name, "new_name": new_name},
+                                application=application,
+                            )
 
-                        self.name = new_name
+                            self.name = new_name
 
-                    elif data["command"][:5] == "Find,":
-                        newrelic.agent.record_custom_event(
-                            "Blink/LED", {"name": self.name}, application=application
-                        )
-                    elif data["command"][:2] == "D,":
-                        # Dispensing, add metric to New Relic
-                        newrelic.agent.record_custom_metric(
-                            f"{self.name}/Dispensed",
-                            data["command"].split(",")[1],
-                            application,
-                        )
-                    self.send_cmd(data["command"])
+                        elif data["command"][:5] == "Find,":
+                            newrelic.agent.record_custom_event(
+                                "Blink/LED",
+                                {"name": self.name},
+                                application=application,
+                            )
+                        elif data["command"][:2] == "D,":
+                            # Dispensing, add metric to New Relic
+                            newrelic.agent.record_custom_metric(
+                                f"{self.name}/Dispensed",
+                                int(data["command"].split(",")[1]),
+                                application,
+                            )
+                        self.send_cmd(data["command"])
 
 
 if __name__ == "__main__":
