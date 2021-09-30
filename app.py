@@ -1,3 +1,4 @@
+import os
 import redis
 import json
 import serial
@@ -18,12 +19,12 @@ application = newrelic.agent.application()
 class DrinkbotSerial:
 
     redis_conn = redis.Redis(charset="utf-8", decode_responses=True)
-    usbport = "/dev/ttyAMA0"
+    serialport = os.environ["SERIAL_PORT"]
     name = None
 
     def __init__(self):
         try:
-            self.serial = serial.Serial(self.usbport, 9600, timeout=0)
+            self.serial = serial.Serial(self.serialport, 9600, timeout=0)
         except serial.SerialException as e:
             newrelic.agent.notice_error()
             print("Error, ", e)
