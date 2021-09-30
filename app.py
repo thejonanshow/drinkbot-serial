@@ -18,19 +18,26 @@ application = newrelic.agent.application()
 
 class DrinkbotSerial:
 
+    DEBUG = os.environ.get("DEBUG", False)
+
     redis_conn = redis.Redis(charset="utf-8", decode_responses=True)
-    serialport = os.environ["SERIAL_PORT"]
+    serialport = os.environ.get("SERIAL_PORT")
     name = None
 
     def __init__(self):
-        try:
-            self.serial = serial.Serial(self.serialport, 9600, timeout=0)
-        except serial.SerialException as e:
-            newrelic.agent.notice_error()
-            print("Error, ", e)
-            sys.exit(0)
+        if not self.DEBUG:
+            try:
+                self.serial = serial.Serial(self.serialport, 9600, timeout=0)
+            except serial.SerialException as e:
+                newrelic.agent.notice_error()
+                print("Error, ", e)
+                sys.exit(0)
 
-        self._init_name()
+            self._init_name()
+        else:
+            self.name = "Mock Motor"
+            self.redis_conn.publish("drinkbot", json.dumps({"name": self.name}))
+            print(f"{self.name} Online")
 
     def _read_line(self):
         lsl = len(b"\r")
@@ -101,13 +108,16 @@ class DrinkbotSerial:
     def send_cmd(self, cmd):
         buf = cmd + "\r"  # add carriage return
 
-        try:
-            self.serial.write(buf.encode("utf-8"))
-            return True
-        except SerialException as e:
-            newrelic.agent.notice_error()
-            print("Error, ", e)
-            return None
+        if not self.DEBUG:
+            try:
+                self.serial.write(buf.encode("utf-8"))
+                return True
+            except SerialException as e:
+                newrelic.agent.notice_error()
+                print("Error, ", e)
+                return None
+        else:
+            print(buf.encode("utf-8"))
 
     def listen_for_commands(self):
         pubsub = self.redis_conn.pubsub()
