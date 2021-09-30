@@ -129,6 +129,7 @@ class DrinkbotSerial:
 
                 if "name" in data and "command" in data and data["name"] == self.name:
                     if data["command"][:4] == "Read":
+                        time.sleep(2)
                         if not self.DEBUG:
                             response = self._read_lines()
                             self.redis_conn.publish(
