@@ -25,6 +25,7 @@ class DrinkbotSerial:
         try:
             self.serial = serial.Serial(self.usbport, 9600, timeout=0)
         except serial.SerialException as e:
+            newrelic.agent.notice_error()
             print("Error, ", e)
             sys.exit(0)
 
@@ -54,6 +55,7 @@ class DrinkbotSerial:
             return lines
 
         except SerialException as e:
+            newrelic.agent.notice_error()
             print("Error, ", e)
             return None
 
@@ -78,6 +80,9 @@ class DrinkbotSerial:
                 random.choices(string.ascii_letters + string.digits, k=16)
             )
             self.send_cmd(f"Name,{self.name}")
+            newrelic.agent.record_custom_event(
+                "Name/Set", {"name": self.name}, application=application
+            )
 
             # wait before we return that we're ready to accept commands
             time.sleep(2)
@@ -94,6 +99,7 @@ class DrinkbotSerial:
             self.serial.write(buf.encode("utf-8"))
             return True
         except SerialException as e:
+            newrelic.agent.notice_error()
             print("Error, ", e)
             return None
 
@@ -108,6 +114,13 @@ class DrinkbotSerial:
                 if "name" in data and "command" in data and data["name"] == self.name:
                     if data["command"][:5] == "Name,":
                         self.name = data["command"].split(",")[1]
+                        newrelic.agent.record_custom_event(
+                            "Name/Set", {"name": self.name}, application=application
+                        )
+                    elif data["command"][:5] == "Find,":
+                        newrelic.agent.record_custom_event(
+                            "Blink/LED", {"name": self.name}, application=application
+                        )
                     elif data["command"][:2] == "D,":
                         # Dispensing, add metric to New Relic
                         newrelic.agent.record_custom_metric(
