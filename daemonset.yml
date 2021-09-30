@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: motorcontroller
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      name: motorcontroller
+  template:
+    metadata:
+      labels:
+        name: motorcontroller
+    spec:
+      tolerations:
+      # this toleration is to have the daemonset runnable on master nodes
+      # remove it if your masters can't run pods
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: motorcontroller
+        image: thejonanshow/motorcontroller:v1
+        securityContext:
+          privileged: true
+        resources:
+          limits:
+            memory: 300Mi
+          requests:
+            cpu: 350m
+            memory: 200Mi
+        volumeMounts:
+        - name: dev
+          mountPath: /dev
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: dev
+        hostPath:
+          path: /dev

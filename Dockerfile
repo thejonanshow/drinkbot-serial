@@ -1,4 +1,4 @@
-FROM python:latest
+FROM python:slim
 
 ADD app.py /
 ADD requirements.txt /
